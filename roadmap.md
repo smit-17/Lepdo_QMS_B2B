@@ -1,0 +1,4 @@
+- [x] Add a diamond-type selector to each diamond row and carry mixed types through totals and PDF.
+- [x] Remove Diamonds and Metal Rates from both header navigation layouts.
+- [x] Enlarge the PDF image and place final pricing beside it.
+- [x] Check quotation screens at mobile and desktop widths, preserving other behavior.

@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790782428359,
+      "tag": "0000_create_quotation_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790784625087,
+      "tag": "0001_customers_currency_overrides",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790840269631,
+      "tag": "0002_customer_seller_applied_rates",
+      "breakpoints": true
+    }
+  ]
+}
