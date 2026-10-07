@@ -255,7 +255,7 @@ export function safeUrl(raw: string): string | null {
  * The item margin is only stacked on such rows when `stackItemMargin` is explicitly on.
  */
 export function withDiamondAmount(row: DiamondRow, marginPct = 0, stackItemMargin = false): DiamondRow {
-  const totalWeightCt = round2(toNumber(row.totalWeightCt));
+  const totalWeightCt = round3(toNumber(row.totalWeightCt));
   const rowMarginOn = Boolean(row.rowMarginOn) && toNumber(row.rowMarginPct) > 0;
   const rowMarginPct = round2(Math.max(0, toNumber(row.rowMarginPct)));
   const itemPct = rowMarginOn && !stackItemMargin ? 0 : toNumber(marginPct);
@@ -336,7 +336,9 @@ export function optionRateFor(item: QuotationItem, purity: string): number {
 export function recalcOption(item: QuotationItem, option: MetalOption): MetalOption {
   const grams = round3(toNumber(option.grams));
   // Weight factors never touch rates; rates come only from the rate inputs.
-  const ratePerGram = optionRateFor(item, option.purity) || round2(toNumber(option.ratePerGram));
+  const ratePerGram = option.manualRate
+    ? round2(toNumber(option.ratePerGram))
+    : optionRateFor(item, option.purity) || round2(toNumber(option.ratePerGram));
   const makingRatePerGram = round2(makingRateForOption(item, option.purity));
   const metalAmount = round2(grams * ratePerGram);
   const makingCharges = round2(grams * makingRatePerGram);
@@ -349,6 +351,8 @@ export function recalcOption(item: QuotationItem, option: MetalOption): MetalOpt
     makingCharges,
     total: round2(metalAmount + makingCharges),
     visible: option.visible !== false,
+    manualGrams: Boolean(option.manualGrams),
+    manualRate: Boolean(option.manualRate),
   };
 }
 
@@ -367,8 +371,12 @@ export function convertFrom14(item: QuotationItem, prices: MetalPrice[]): Quotat
     const existing = item.metalOptions.find((o) => o.purity === purity);
     return {
       purity,
-      grams: round3(base * factor),
-      ratePerGram: optionRateFor(item, purity) || existing?.ratePerGram || metalRateFor(prices, purity),
+      grams: existing?.manualGrams ? existing.grams : round3(base * factor),
+      ratePerGram: existing?.manualRate
+        ? existing.ratePerGram
+        : optionRateFor(item, purity) || existing?.ratePerGram || metalRateFor(prices, purity),
+      manualGrams: Boolean(existing?.manualGrams),
+      manualRate: Boolean(existing?.manualRate),
       makingRatePerGram: 0,
       metalAmount: 0,
       makingCharges: 0,
@@ -490,7 +498,7 @@ export function isItemFilled(item: QuotationItem): boolean {
 }
 
 export function itemDiamondWeight(item: QuotationItem): number {
-  return round2(item.diamonds.reduce((sum, d) => sum + toNumber(d.totalWeightCt), 0));
+  return round3(item.diamonds.reduce((sum, d) => sum + toNumber(d.totalWeightCt), 0));
 }
 
 /**
@@ -509,7 +517,7 @@ export function buildTotals(items: QuotationItem[], marginPct: number): Quotatio
     marginAmount,
     finalAmount: round2(itemsSubtotal + marginAmount),
     totalMetalGrams: round2(priced.reduce((sum, i) => sum + toNumber(i.metalGrams), 0)),
-    totalDiamondWeight: round2(priced.reduce((sum, i) => sum + itemDiamondWeight(i), 0)),
+    totalDiamondWeight: round3(priced.reduce((sum, i) => sum + itemDiamondWeight(i), 0)),
     totalMetalAmount: round2(priced.reduce((sum, i) => sum + toNumber(i.metalAmount), 0)),
     totalMakingCharges: round2(priced.reduce((sum, i) => sum + toNumber(i.makingCharges), 0)),
     totalDiamondAmount: round2(priced.reduce((sum, i) => sum + toNumber(i.diamondAmount), 0)),

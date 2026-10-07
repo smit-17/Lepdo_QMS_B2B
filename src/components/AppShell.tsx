@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 const NAV = [
   { to: "/", label: "New Quotation" },
   { to: "/search", label: "Quotations" },
+  { to: "/dropdowns", label: "Manage Dropdowns" },
 ] as const;
 
 function ThemeToggle() {

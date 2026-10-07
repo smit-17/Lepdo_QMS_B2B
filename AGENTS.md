@@ -19,3 +19,6 @@
 - Customers are saved only when name, mobile (7+ digits), address and seller are all filled; the picker hides older incomplete records instead of deleting them. Why: stop stray/test entries polluting the dropdown.
 - Diamond rows may carry their own markup-on-cost margin; the item margin skips those rows unless "stack" is ticked. Why: avoid silently applying margin twice.
 - Live Surat 24 KT rate + USD/INR are fetched server-side, last good value kept in app_config with stale flag; applied rates are snapshotted per quotation (applied_rates). Why: never show fabricated live values or change saved quotations.
+- Dropdown lists (category, shape, diamond_type labels) live in dropdown_options; removed options are deactivated, never deleted, and forms keep a saved value even if inactive. Why: historical quotations must stay intact.
+- Metal option rows carry manualGrams/manualRate flags; recalc and auto-convert never overwrite flagged values. Why: per-row manual overrides.
+- Diamond weights are kept to 3 decimals (round3) and typed through a string-backed input. Why: entries like 0.005 ct.

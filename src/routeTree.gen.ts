@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppDiamondsRouteImport } from './routes/_app.diamonds'
+import { Route as AppDropdownsRouteImport } from './routes/_app.dropdowns'
 import { Route as AppMetalPricesRouteImport } from './routes/_app.metal-prices'
 import { Route as AppSearchRouteImport } from './routes/_app.search'
 import { Route as AppQuotationIdRouteImport } from './routes/_app.quotation.$id'
@@ -28,6 +29,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppDiamondsRoute = AppDiamondsRouteImport.update({
   id: '/diamonds',
   path: '/diamonds',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDropdownsRoute = AppDropdownsRouteImport.update({
+  id: '/dropdowns',
+  path: '/dropdowns',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMetalPricesRoute = AppMetalPricesRouteImport.update({
@@ -49,12 +55,14 @@ const AppQuotationIdRoute = AppQuotationIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/diamonds': typeof AppDiamondsRoute
+  '/dropdowns': typeof AppDropdownsRoute
   '/metal-prices': typeof AppMetalPricesRoute
   '/search': typeof AppSearchRoute
   '/quotation/$id': typeof AppQuotationIdRoute
 }
 export interface FileRoutesByTo {
   '/diamonds': typeof AppDiamondsRoute
+  '/dropdowns': typeof AppDropdownsRoute
   '/metal-prices': typeof AppMetalPricesRoute
   '/search': typeof AppSearchRoute
   '/': typeof AppIndexRoute
@@ -64,6 +72,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_app/diamonds': typeof AppDiamondsRoute
+  '/_app/dropdowns': typeof AppDropdownsRoute
   '/_app/metal-prices': typeof AppMetalPricesRoute
   '/_app/search': typeof AppSearchRoute
   '/_app/': typeof AppIndexRoute
@@ -71,13 +80,26 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/diamonds' | '/metal-prices' | '/search' | '/quotation/$id'
+  fullPaths:
+    | '/'
+    | '/diamonds'
+    | '/dropdowns'
+    | '/metal-prices'
+    | '/search'
+    | '/quotation/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/diamonds' | '/metal-prices' | '/search' | '/' | '/quotation/$id'
+  to:
+    | '/diamonds'
+    | '/dropdowns'
+    | '/metal-prices'
+    | '/search'
+    | '/'
+    | '/quotation/$id'
   id:
     | '__root__'
     | '/_app'
     | '/_app/diamonds'
+    | '/_app/dropdowns'
     | '/_app/metal-prices'
     | '/_app/search'
     | '/_app/'
@@ -111,6 +133,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDiamondsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/dropdowns': {
+      id: '/_app/dropdowns'
+      path: '/dropdowns'
+      fullPath: '/dropdowns'
+      preLoaderRoute: typeof AppDropdownsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/metal-prices': {
       id: '/_app/metal-prices'
       path: '/metal-prices'
@@ -137,6 +166,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppDiamondsRoute: typeof AppDiamondsRoute
+  AppDropdownsRoute: typeof AppDropdownsRoute
   AppMetalPricesRoute: typeof AppMetalPricesRoute
   AppSearchRoute: typeof AppSearchRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -145,6 +175,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppDiamondsRoute: AppDiamondsRoute,
+  AppDropdownsRoute: AppDropdownsRoute,
   AppMetalPricesRoute: AppMetalPricesRoute,
   AppSearchRoute: AppSearchRoute,
   AppIndexRoute: AppIndexRoute,

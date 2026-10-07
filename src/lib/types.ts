@@ -120,6 +120,9 @@ export type MetalOption = {
   total: number;
   /** Shown in the customer PDF. Hidden options keep their data. */
   visible: boolean;
+  /** Typed by hand via "Manual Edit"; auto conversion / base rates never overwrite these. */
+  manualGrams?: boolean;
+  manualRate?: boolean;
 };
 
 /** Steps 2-6 — one piece of jewellery inside the quotation. */

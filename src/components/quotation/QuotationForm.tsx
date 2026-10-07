@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useDropdowns } from "@/hooks/use-dropdowns";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, ExternalLink, Percent, Eye, EyeOff, FileSearch, Loader2, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
+import { Check, Copy, ExternalLink, Percent, Eye, EyeOff, FileSearch, Loader2, Plus, RotateCcw, Save, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +36,7 @@ import {
 } from "@/lib/calc";
 import {
   CATEGORIES,
+  METAL_OPTION_FACTORS,
   CURRENCIES,
   DEFAULT_PDF_VISIBILITY,
   type Currency,
@@ -145,7 +147,9 @@ export function QuotationForm({
   const [activeIndex, setActiveIndex] = useState(0);
   const [step, setStep] = useState(1);
 
-  const shapes = useMemo(() => shapesFrom(diamondPrices), [diamondPrices]);
+  const priceShapes = useMemo(() => shapesFrom(diamondPrices), [diamondPrices]);
+  const dropdowns = useDropdowns();
+  const shapes = dropdowns.shapes(priceShapes).map((c) => c.value);
   const item = items[activeIndex] ?? (items[0] as QuotationItem);
   const totals = useMemo(() => buildTotals(items, toNumber(marginPct)), [items, marginPct]);
 
@@ -189,6 +193,16 @@ export function QuotationForm({
   function patchOption(purity: string, patch: Partial<MetalOption>) {
     patchItem({
       metalOptions: item.metalOptions.map((o) => (o.purity === purity ? { ...o, ...patch } : o)),
+    });
+  }
+
+  /** Clears manual overrides on one metal row; the row goes back to auto weight + rate. */
+  function resetOption(purity: string) {
+    const spec = METAL_OPTION_FACTORS.find((f) => f.purity === purity);
+    patchOption(purity, {
+      manualGrams: false,
+      manualRate: false,
+      grams: spec ? item.baseGrams14 * spec.factor : 0,
     });
   }
 
@@ -587,9 +601,9 @@ export function QuotationForm({
                 onChange={(e) => patchItem({ category: e.target.value })}
               >
                 <option value="">Select category</option>
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                {dropdowns.categories(item.category).map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
                   </option>
                 ))}
               </select>
@@ -658,6 +672,7 @@ export function QuotationForm({
               sym={sym}
               numInput={numInput}
               onPatch={patchOption}
+              onReset={(purity) => resetOption(purity)}
             />
             <LiveGoldPanel
               currency={cur}
@@ -810,8 +825,8 @@ export function QuotationForm({
                       </td>
                        <td className="px-2 py-1.5">
                          <select aria-label={`Diamond Type row ${index + 1}`} className={cn(selectClass, "w-44")} value={row.type} onChange={(e) => patchDiamond(row.key, { type: e.target.value as DiamondType })}>
-                           <option value="Lab-Grown">Lab Grown Diamond</option>
-                           <option value="Moissanite">Moissanite Diamond</option>
+                           <option value="Lab-Grown">{dropdowns.diamondTypeLabel("Lab-Grown")}</option>
+                           <option value="Moissanite">{dropdowns.diamondTypeLabel("Moissanite")}</option>
                          </select>
                        </td>
                       <td className="px-2 py-1.5">
@@ -823,7 +838,7 @@ export function QuotationForm({
                           }
                         >
                           <option value="">Shape</option>
-                          {shapes.map((sh) => (
+                          {withCurrent(shapes, row.shape).map((sh) => (
                             <option key={sh} value={sh}>
                               {sh}
                             </option>
@@ -860,15 +875,11 @@ export function QuotationForm({
                         />
                       </td>
                       <td className="px-2 py-1.5">
-                        <Input
+                        <DecimalInput
+                          aria-label={`Total weight row ${index + 1}`}
                           className="h-9 w-24 text-right"
-                          type="number"
-                          min={0}
-                          step="0.001"
-                          value={row.totalWeightCt || ""}
-                          onChange={(e) =>
-                            patchDiamond(row.key, { totalWeightCt: toNumber(e.target.value) })
-                          }
+                          value={row.totalWeightCt}
+                          onValue={(v) => patchDiamond(row.key, { totalWeightCt: v })}
                         />
                       </td>
                       {(() => {
@@ -971,14 +982,14 @@ export function QuotationForm({
                         <Button type="button" variant="ghost" size="icon" aria-label={`Delete diamond row ${index + 1}`} onClick={() => patchItem({ diamonds: item.diamonds.filter((d) => d.key !== row.key) })}><Trash2 className="size-4 text-destructive" /></Button>
                       </div>
                     </div>
-                    <Field label="Diamond Type"><select aria-label={`Diamond Type row ${index + 1}`} className={selectClass} value={row.type} onChange={(e) => patchDiamond(row.key, { type: e.target.value as DiamondType })}><option value="Lab-Grown">Lab Grown Diamond</option><option value="Moissanite">Moissanite Diamond</option></select></Field>
+                    <Field label="Diamond Type"><select aria-label={`Diamond Type row ${index + 1}`} className={selectClass} value={row.type} onChange={(e) => patchDiamond(row.key, { type: e.target.value as DiamondType })}><option value="Lab-Grown">{dropdowns.diamondTypeLabel("Lab-Grown")}</option><option value="Moissanite">{dropdowns.diamondTypeLabel("Moissanite")}</option></select></Field>
                     <Field label="Description"><Input value={row.description} onChange={(e) => patchDiamond(row.key, { description: e.target.value })} /></Field>
                     <div className="grid grid-cols-2 gap-3">
-                      <Field label="Shape"><select className={selectClass} value={row.shape} onChange={(e) => patchDiamond(row.key, autoPrice(row, { shape: e.target.value }))}><option value="">Shape</option>{shapes.map((shape) => <option key={shape} value={shape}>{shape}</option>)}</select></Field>
+                      <Field label="Shape"><select className={selectClass} value={row.shape} onChange={(e) => patchDiamond(row.key, autoPrice(row, { shape: e.target.value }))}><option value="">Shape</option>{withCurrent(shapes, row.shape).map((shape) => <option key={shape} value={shape}>{shape}</option>)}</select></Field>
                       <Field label="Size"><Input aria-label={`Size row ${index + 1}`} value={row.size} placeholder="e.g. 1.5 mm" onChange={(e) => patchDiamond(row.key, autoPrice(row, { size: e.target.value }))} /></Field>
                       {(["color", "clarity", "cut", "certificate"] as const).map((field) => <Field key={field} label={field}><Input value={row[field]} onChange={(e) => patchDiamond(row.key, { [field]: e.target.value })} /></Field>)}
                       <Field label="Pieces"><Input type="number" min={0} value={row.pieces || ""} onChange={(e) => patchDiamond(row.key, { pieces: toNumber(e.target.value) })} /></Field>
-                      <Field label="Total weight (ct)"><Input type="number" min={0} step="0.001" value={row.totalWeightCt || ""} onChange={(e) => patchDiamond(row.key, { totalWeightCt: toNumber(e.target.value) })} /></Field>
+                      <Field label="Total weight (ct)"><DecimalInput aria-label={`Total weight mobile row ${index + 1}`} value={row.totalWeightCt} onValue={(v) => patchDiamond(row.key, { totalWeightCt: v })} /></Field>
                       <Field label={`${moiss ? "Moiss." : "LGD"} /ct (${sym})`}><Input aria-label={`${moiss ? "Moiss." : "LGD"} /ct row ${index + 1}`} type="number" min={0} step="0.01" value={row[rateField] || ""} onChange={(e) => patchDiamond(row.key, { [rateField]: toNumber(e.target.value) })} />{item.diamondMarginPct > 0 && <span className="text-xs text-muted-foreground">+{item.diamondMarginPct}% = {fmt(row.pricePerCt)}</span>}</Field>
                       <ReadonlyAmount label="Amount" value={fmt(row.amount)} />
                     </div>
@@ -1138,16 +1149,19 @@ function MetalOptionsTable({
   sym,
   numInput,
   onPatch,
+  onReset,
 }: {
   options: MetalOption[];
   fmt: (v: number) => string;
   sym: string;
   numInput: string;
   onPatch: (purity: string, patch: Partial<MetalOption>) => void;
+  onReset: (purity: string) => void;
 }) {
+  const [editing, setEditing] = useState<string | null>(null);
   return (
      <div className="max-w-full overflow-x-auto rounded-lg border border-border">
-      <table className="w-full min-w-[900px] text-sm">
+      <table className="w-full min-w-[1100px] text-sm">
         <thead className="bg-muted/60 text-xs tracking-wide text-muted-foreground uppercase">
           <tr>
             <th className="px-3 py-2 text-left font-medium">Purity</th>
@@ -1157,23 +1171,50 @@ function MetalOptionsTable({
             <th className="px-3 py-2 text-right font-medium">Making /g</th>
             <th className="px-3 py-2 text-right font-medium">Making charges</th>
             <th className="px-3 py-2 text-right font-medium">Metal + making</th>
-            <th className="px-3 py-2 text-center font-medium">PDF</th>
+            <th className="px-3 py-2 text-center font-medium">PDF / Edit</th>
           </tr>
         </thead>
         <tbody>
           {options.map((o) => (
             <tr key={o.purity} className={cn("border-t border-border tabular-nums", !o.visible && "text-muted-foreground")}>
-              <td className="px-3 py-1.5 font-medium">{o.purity}</td>
-              <td className="px-3 py-1.5 text-right">{o.grams.toFixed(3)}</td>
-              <td className="px-3 py-1.5 text-right">
-                {fmt(o.ratePerGram)}
+              <td className="px-3 py-1.5 font-medium">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {o.purity}
+                  {(o.manualGrams || o.manualRate) && (
+                    <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-accent-foreground">Manual</span>
+                  )}
+                </div>
+              </td>
+              <td className={cn("px-3 py-1.5 text-right", o.manualGrams && "font-semibold text-primary")}>
+                {editing === o.purity ? (
+                  <DecimalInput aria-label={`${o.purity} grams`} className={cn(numInput, "ml-auto")} value={o.grams} onValue={(v) => onPatch(o.purity, { grams: v, manualGrams: true })} />
+                ) : (
+                  o.grams.toFixed(3)
+                )}
+              </td>
+              <td className={cn("px-3 py-1.5 text-right", o.manualRate && "font-semibold text-primary")}>
+                {editing === o.purity ? (
+                  <DecimalInput aria-label={`${o.purity} rate per gram`} decimals={2} className={cn(numInput, "ml-auto")} value={o.ratePerGram} onValue={(v) => onPatch(o.purity, { ratePerGram: v, manualRate: true })} />
+                ) : (
+                  fmt(o.ratePerGram)
+                )}
               </td>
               <td className="px-3 py-1.5 text-right">{fmt(o.metalAmount)}</td>
               <td className="px-3 py-1.5 text-right">{fmt(o.makingRatePerGram)}</td>
               <td className="px-3 py-1.5 text-right">{fmt(o.makingCharges)}</td>
               <td className="px-3 py-1.5 text-right font-semibold">{fmt(o.total)}</td>
               <td className="px-3 py-1.5 text-center">
-                <VisibilityButton visible={o.visible} onClick={() => onPatch(o.purity, { visible: !o.visible })} />
+                <div className="flex items-center justify-center gap-1">
+                  <VisibilityButton visible={o.visible} onClick={() => onPatch(o.purity, { visible: !o.visible })} />
+                  <Button type="button" size="sm" variant={editing === o.purity ? "default" : "outline"} onClick={() => setEditing(editing === o.purity ? null : o.purity)}>
+                    {editing === o.purity ? <><Check className="mr-1 size-3" />Done</> : <><Pencil className="mr-1 size-3" />Manual Edit</>}
+                  </Button>
+                  {(o.manualGrams || o.manualRate) && (
+                    <Button type="button" size="sm" variant="ghost" onClick={() => { onReset(o.purity); setEditing(null); }}>
+                      <RotateCcw className="mr-1 size-3" />Reset to Auto
+                    </Button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
@@ -1353,5 +1394,53 @@ function RowMargin({ row, onPatch }: { row: DiamondRow; onPatch: (p: Partial<Dia
         <Trash2 className="size-3.5 text-destructive" />
       </Button>
     </div>
+  );
+}
+
+function withCurrent(list: string[], current: string): string[] {
+  return current && !list.includes(current) ? [...list, current] : list;
+}
+
+/**
+ * Number box that keeps what the user typed ("0.", "0.00", "") while editing,
+ * allows up to `decimals` digits after the point, and never rounds while typing.
+ */
+function DecimalInput({
+  value,
+  onValue,
+  decimals = 3,
+  className,
+  ...rest
+}: {
+  value: number;
+  onValue: (v: number) => void;
+  decimals?: number;
+  className?: string;
+  "aria-label"?: string;
+}) {
+  const [text, setText] = useState(value ? String(value) : "");
+  useEffect(() => {
+    const parsed = text === "" || text === "." ? 0 : Number(text);
+    if (parsed !== value) setText(value ? String(value) : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+  const pattern = new RegExp(`^\\d*(\\.\\d{0,${decimals}})?$`);
+  return (
+    <Input
+      {...rest}
+      type="text"
+      inputMode="decimal"
+      autoComplete="off"
+      placeholder={decimals === 3 ? "0.000" : "0.00"}
+      className={className}
+      value={text}
+      onChange={(e) => {
+        const next = e.target.value.replace(",", ".");
+        if (!pattern.test(next)) return;
+        setText(next);
+        const n = next === "" || next === "." ? 0 : Number(next);
+        if (Number.isFinite(n)) onValue(n);
+      }}
+    />
   );
 }

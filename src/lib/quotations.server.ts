@@ -1,5 +1,5 @@
 import { db } from "./db.server";
-import { buildTotals, newKey, recalcItem, round2, toNumber } from "./calc";
+import { buildTotals, newKey, recalcItem, round2, round3, toNumber } from "./calc";
 import type {
   DiamondPrice,
   DiamondRow,
@@ -107,7 +107,7 @@ function normalizeDiamondRow(raw: unknown): DiamondRow {
     cut: text(d["cut"]),
     certificate: text(d["certificate"]),
     pieces: Math.max(0, Math.round(toNumber(d["pieces"]))),
-    totalWeightCt: round2(toNumber(d["totalWeightCt"])),
+    totalWeightCt: round3(toNumber(d["totalWeightCt"])),
     pricePerCt: round2(toNumber(d["pricePerCt"])),
     amount: round2(toNumber(d["amount"])),
     // Older rows stored one price for their type; carry it into that type's rate.
@@ -163,6 +163,8 @@ function normalizeItem(raw: unknown): QuotationItem {
         makingCharges: 0,
         total: 0,
         visible: o["visible"] !== false,
+        manualGrams: o["manualGrams"] === true,
+        manualRate: o["manualRate"] === true,
       };
     }),
     lgdAmount: 0,

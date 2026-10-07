@@ -98,6 +98,36 @@ export type Database = {
         }
         Relationships: []
       }
+      dropdown_options: {
+        Row: {
+          active: boolean
+          id: string
+          label: string
+          list_key: string
+          sort_order: number
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          active?: boolean
+          id?: string
+          label: string
+          list_key: string
+          sort_order?: number
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          active?: boolean
+          id?: string
+          label?: string
+          list_key?: string
+          sort_order?: number
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       metal_prices: {
         Row: {
           making_charge: number

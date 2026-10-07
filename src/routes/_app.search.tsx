@@ -43,7 +43,7 @@ import {
   exportQuotationsToExcel,
   exportQuotationsToPdfZip,
 } from "@/lib/export";
-import { CATEGORIES } from "@/lib/types";
+import { useDropdowns } from "@/hooks/use-dropdowns";
 
 const PAGE_SIZE = 12;
 
@@ -81,6 +81,7 @@ export const Route = createFileRoute("/_app/search")({
 function SearchPage() {
   const router = useRouter();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const dropdowns = useDropdowns();
   const [debounced, setDebounced] = useState(DEFAULT_FILTERS);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
@@ -249,9 +250,9 @@ function SearchPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
-                {CATEGORIES.map((item) => (
-                  <SelectItem key={item} value={item}>
-                    {item}
+                {dropdowns.categories().map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -115,6 +115,8 @@ const quotationItemSchema = z.object({
         makingCharges: z.number().min(0).default(0),
         total: z.number().min(0).default(0),
         visible: z.boolean().default(true),
+        manualGrams: z.boolean().default(false),
+        manualRate: z.boolean().default(false),
       }),
     )
     .default([]),
