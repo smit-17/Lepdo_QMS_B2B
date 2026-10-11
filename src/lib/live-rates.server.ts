@@ -56,21 +56,32 @@ export function parseSurat24k(html: string): number | null {
 }
 
 const FIRECRAWL_GATEWAY = "https://connector-gateway.lovable.dev/firecrawl/v2";
+const FIRECRAWL_DIRECT = "https://api.firecrawl.dev/v2";
 
-/** Reads the Surat page through Firecrawl, which renders it in a real browser so Cloudflare does not block it. */
+/**
+ * Reads the Surat page through Firecrawl, which renders it in a real browser so Cloudflare does not block it.
+ * Two auth modes: a direct Firecrawl key (starts with "fc-", e.g. self-hosted on Vercel) calls the Firecrawl
+ * API directly; a Lovable connection key ("lovc_...") goes through the Lovable connector gateway.
+ */
 async function fetchGold(): Promise<RateReading> {
-  const lovableKey = process.env["LOVABLE_API_KEY"];
   const firecrawlKey = process.env["FIRECRAWL_API_KEY"];
-  if (!lovableKey || !firecrawlKey) {
+  if (!firecrawlKey) {
     throw new Error("Firecrawl connection is not set up");
   }
-  const res = await fetch(`${FIRECRAWL_GATEWAY}/scrape`, {
+  const direct = firecrawlKey.startsWith("fc-");
+  const lovableKey = process.env["LOVABLE_API_KEY"];
+  if (!direct && !lovableKey) {
+    throw new Error("Firecrawl connection is not set up");
+  }
+  const res = await fetch(`${direct ? FIRECRAWL_DIRECT : FIRECRAWL_GATEWAY}/scrape`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": firecrawlKey,
-    },
+    headers: direct
+      ? { "Content-Type": "application/json", Authorization: `Bearer ${firecrawlKey}` }
+      : {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${lovableKey}`,
+          "X-Connection-Api-Key": firecrawlKey,
+        },
     body: JSON.stringify({ url: GOLD_SOURCE_URL, formats: ["markdown", "html"], onlyMainContent: false }),
   });
   const body = await res.text();
