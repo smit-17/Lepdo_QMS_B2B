@@ -55,18 +55,36 @@ export function parseSurat24k(html: string): number | null {
   return null;
 }
 
+const FIRECRAWL_GATEWAY = "https://connector-gateway.lovable.dev/firecrawl/v2";
+
+/** Reads the Surat page through Firecrawl, which renders it in a real browser so Cloudflare does not block it. */
 async function fetchGold(): Promise<RateReading> {
-  const res = await fetch(GOLD_SOURCE_URL, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
-      Accept: "text/html",
-    },
-  });
-  const html = await res.text();
-  if (!res.ok || /Attention Required|you have been blocked/i.test(html)) {
-    throw new Error("The Surat gold-rate website blocked the automatic request");
+  const lovableKey = process.env["LOVABLE_API_KEY"];
+  const firecrawlKey = process.env["FIRECRAWL_API_KEY"];
+  if (!lovableKey || !firecrawlKey) {
+    throw new Error("Firecrawl connection is not set up");
   }
-  const value = parseSurat24k(html);
+  const res = await fetch(`${FIRECRAWL_GATEWAY}/scrape`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${lovableKey}`,
+      "X-Connection-Api-Key": firecrawlKey,
+    },
+    body: JSON.stringify({ url: GOLD_SOURCE_URL, formats: ["markdown", "html"], onlyMainContent: false }),
+  });
+  const body = await res.text();
+  if (!res.ok) {
+    throw new Error(`Gold-rate reader failed [${res.status}]: ${body.slice(0, 200)}`);
+  }
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(body) as Record<string, unknown>;
+  } catch {
+    throw new Error("Gold-rate reader returned an unreadable response");
+  }
+  const inner = (data["data"] ?? data) as { markdown?: string; html?: string };
+  const value = parseSurat24k(inner.markdown ?? "") ?? parseSurat24k(inner.html ?? "");
   if (!value) throw new Error("Could not find the 24 KT rate on the Surat page");
   return { value, source: GOLD_SOURCE_URL, updatedAt: new Date().toISOString(), kind: "live" };
 }
